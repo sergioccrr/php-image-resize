@@ -10,10 +10,12 @@ class ImageResize {
 
 	private $square;
 
+	private $quality = 75;
+
 
 	public function __set($name, $value) {
 		do {
-			if ($name === 'error') break;
+			if ($name === 'error' || $name === 'quality') break;
 
 			if (!in_array($name, ['max', 'width', 'height', 'square'], true)) {
 				trigger_error('Undefined variable: ' . htmlspecialchars($name), E_USER_ERROR);
@@ -135,6 +137,7 @@ class ImageResize {
 			$newH = $this->square;
 		}
 
+
 		if ($this->square && $srcW > $srcH) {
 			$srcX = ceil(($srcW - $srcH) / 2);
 			$dstW = round($srcW * ($this->square / $srcH));
@@ -157,13 +160,15 @@ class ImageResize {
 			return false;
 		}
 
+
 		if (!imagecopyresampled($canvas, $source, 0, 0, $srcX, $srcY, $dstW, $dstH, $srcW, $srcH)) {
 			$this->error = 'Error on imagecopyresampled function';
 			return false;
 		}
 
 
-		if (!imagejpeg($canvas, $output)) {
+		// Generate output
+		if (!imagejpeg($canvas, $output, $this->quality)) {
 			$this->error = 'Error on imagejpeg function';
 			return false;
 		}
