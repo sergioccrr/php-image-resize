@@ -73,17 +73,7 @@ class ImageResize {
 		}
 
 
-		// Get image size
-		$srcW = imagesx($source);
-		$srcH = imagesy($source);
-
-		if (!$srcW || !$srcH) {
-			$this->error = 'Error on imagesx / imagesy functions';
-			return false;
-		}
-
-
-		// Correct rotation
+		// Rotate image if necessary
 		do {
 			$angle = false;
 
@@ -98,8 +88,26 @@ class ImageResize {
 
 			$mapping = [3 => 180, 6 => -90, 8 => 90];
 			$orientation = $exif['Orientation'];
-			$angle = isset($mapping[$orientation]) ? $mapping[$orientation] : false;
+
+			if (!isset($mapping[$orientation])) break;
+
+			$angle = $mapping[$orientation];
+
+			if (!($source = imagerotate($source, $angle, 0))) {
+				$this->error = 'Error on imagerotate function';
+				return false;
+			}
 		} while (false);
+
+
+		// Get image size
+		$srcW = imagesx($source);
+		$srcH = imagesy($source);
+
+		if (!$srcW || !$srcH) {
+			$this->error = 'Error on imagesx / imagesy functions';
+			return false;
+		}
 
 
 		// Math time!
@@ -151,13 +159,6 @@ class ImageResize {
 
 		if (!imagecopyresampled($canvas, $source, 0, 0, $srcX, $srcY, $dstW, $dstH, $srcW, $srcH)) {
 			$this->error = 'Error on imagecopyresampled function';
-			return false;
-		}
-
-
-		// Rotate image if necessary
-		if ($angle && !($canvas = imagerotate($canvas, $angle, 0))) {
-			$this->error = 'Error on imagerotate function';
 			return false;
 		}
 
