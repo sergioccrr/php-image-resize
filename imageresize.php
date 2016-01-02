@@ -47,9 +47,7 @@ class ImageResize {
 
 	public function process($input, $output=NULL) {
 		// Get image type
-		$tmp = getimagesize($input);
-
-		if (!$tmp) {
+		if (!($tmp = getimagesize($input))) {
 			$this->error = 'Error on getimagesize function';
 			return false;
 		}
@@ -83,6 +81,25 @@ class ImageResize {
 			$this->error = 'Error on imagesx / imagesy functions';
 			return false;
 		}
+
+
+		// Correct rotation
+		do {
+			$angle = false;
+
+			if ($type !== IMAGETYPE_JPEG) break;
+
+			if (!($exif = exif_read_data($input))) {
+				$this->error = 'Error on exif_read_data function';
+				return false;
+			}
+
+			if (!isset($exif['Orientation'])) break;
+
+			$mapping = [3 => 180, 6 => -90, 8 => 90];
+			$orientation = $exif['Orientation'];
+			$angle = isset($mapping[$orientation]) ? $mapping[$orientation] : false;
+		} while (false);
 
 
 		// Math time!
@@ -127,20 +144,25 @@ class ImageResize {
 
 
 		// Create new canvas
-		$canvas = imagecreatetruecolor($newW, $newH);
-		if (!$canvas) {
+		if (!($canvas = imagecreatetruecolor($newW, $newH))) {
 			$this->error = 'Error on imagecreatetruecolor function';
 			return false;
 		}
 
-		$result = imagecopyresampled($canvas, $source, 0, 0, $srcX, $srcY, $dstW, $dstH, $srcW, $srcH);
-		if (!$result) {
+		if (!imagecopyresampled($canvas, $source, 0, 0, $srcX, $srcY, $dstW, $dstH, $srcW, $srcH)) {
 			$this->error = 'Error on imagecopyresampled function';
 			return false;
 		}
 
-		$result = imagejpeg($canvas, $output);
-		if (!$result) {
+
+		// Rotate image if necessary
+		if ($angle && !($canvas = imagerotate($canvas, $angle, 0))) {
+			$this->error = 'Error on imagerotate function';
+			return false;
+		}
+
+
+		if (!imagejpeg($canvas, $output)) {
 			$this->error = 'Error on imagejpeg function';
 			return false;
 		}
